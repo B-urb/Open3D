@@ -122,9 +122,8 @@ void Draw(const std::vector<DrawObject> &objects,
     draw->ResetCameraToDefault();
 
     gui::Application::GetInstance().AddWindow(draw);
-    draw.reset();  // so we don't hold onto the pointer after Run() cleans up
 
-    auto emulate_mouse_events = [headless_window]() -> void {
+    auto emulate_mouse_events = [headless_window, draw]() -> void {
         while (true) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
             utility::LogInfo("emulate_mouse_events called");
@@ -134,10 +133,11 @@ void Draw(const std::vector<DrawObject> &objects,
             me = gui::MouseEvent{gui::MouseEvent::Type::BUTTON_DOWN, 139, 366,
                                  0};
             me.button.button = gui::MouseButton::LEFT;
-            headless_window->PostMouseEvent(headless_window.get(), me);
+            headless_window->PostMouseEvent(draw->GetOSWindow(), me);
             utility::LogInfo("Send click done");
         }
     };
+    draw.reset();  // so we don't hold onto the pointer after Run() cleans up
     std::thread thead(emulate_mouse_events);
 
     gui::Application::GetInstance().Run();
