@@ -46,11 +46,11 @@ public:
 
     Size GetScreenSize(OSWindow w) override;
 
-    OSWindow CreateWindow(Window* o3d_window,
-                          int width,
-                          int height,
-                          const char* title,
-                          int flags) override;
+    OSWindow CreateOSWindow(Window* o3d_window,
+                            int width,
+                            int height,
+                            const char* title,
+                            int flags) override;
     void DestroyWindow(OSWindow w) override;
 
     void PostRedrawEvent(OSWindow w) override;
@@ -85,6 +85,8 @@ public:
 
     void ResizeRenderer(OSWindow w,
                         rendering::FilamentRenderer* renderer) override;
+
+    MenuBase* CreateOSMenu() override;
 
 private:
     static void DrawCallback(GLFWwindow* window);

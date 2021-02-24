@@ -93,6 +93,7 @@ const int Window::FLAG_TOPMOST = (1 << 1);
 struct Window::Impl {
     WindowSystem::OSWindow window_ = nullptr;
     std::string title_;  // there is no glfwGetWindowTitle()...
+    bool draw_menu_ = true;
     std::unordered_map<Menu::ItemId, std::function<void()>> menu_callbacks_;
     std::function<bool(void)> on_tick_event_;
     std::function<bool(void)> on_close_;
@@ -101,6 +102,8 @@ struct Window::Impl {
     // the time we monitor key up/down events.
     int mouse_mods_ = 0;  // ORed KeyModifiers
     double last_render_time_ = 0.0;
+    double last_button_down_time_ = 0.0;  // we have to compute double-click
+    MouseButton last_button_down_ = MouseButton::NONE;
 
     Theme theme_;  // so that the font size can be different based on scaling
     visualization::rendering::FilamentRenderer* renderer_;
@@ -166,8 +169,8 @@ Window::Window(const std::string& title,
     int initial_width = std::max(10, width);
     int initial_height = std::max(10, height);
     auto& ws = Application::GetInstance().GetWindowSystem();
-    impl_->window_ = ws.CreateWindow(this, initial_width, initial_height,
-                                     title.c_str(), ws_flags);
+    impl_->window_ = ws.CreateOSWindow(this, initial_width, initial_height,
+                                       title.c_str(), ws_flags);
     impl_->title_ = title;
 
     if (x != CENTERED_X || y != CENTERED_Y) {
@@ -227,9 +230,7 @@ Window::Window(const std::string& title,
 
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
-#ifdef WIN32
-    io.ImeWindowHandle = GetNativeDrawable();
-#endif
+
     // ImGUI's io.KeysDown is indexed by our scan codes, and we fill out
     // io.KeyMap to map from our code to ImGui's code.
     io.KeyMap[ImGuiKey_Tab] = KEY_TAB;
@@ -482,13 +483,11 @@ Size Window::GetSize() const {
 Rect Window::GetContentRect() const {
     auto size = GetSize();
     int menu_height = 0;
-#if !(GUI_USE_NATIVE_MENUS && defined(__APPLE__))
     MakeDrawContextCurrent();
     auto menubar = Application::GetInstance().GetMenubar();
-    if (menubar) {
+    if (menubar && impl_->draw_menu_) {
         menu_height = menubar->CalcHeight(GetTheme());
     }
-#endif
 
     return Rect(0, menu_height, size.width, size.height - menu_height);
 }
@@ -657,6 +656,8 @@ void Window::ShowMessageBox(const char* title, const char* message) {
     dlg->AddChild(layout);
     ShowDialog(dlg);
 }
+
+void Window::ShowMenu(bool show) { impl_->draw_menu_ = show; }
 
 void Window::Layout(const Theme& theme) {
     if (impl_->children_.size() == 1) {
@@ -847,7 +848,7 @@ Widget::DrawResult Window::DrawOnce(bool is_layout_pass) {
     // Draw menubar after the children so it is always on top (although it
     // shouldn't matter, as there shouldn't be anything under it)
     auto menubar = Application::GetInstance().GetMenubar();
-    if (menubar) {
+    if (menubar && impl_->draw_menu_) {
         auto id = menubar->DrawMenuBar(dc, !impl_->active_dialog_);
         if (id != Menu::NO_ITEM) {
             OnMenuItemSelected(id);

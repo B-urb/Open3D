@@ -32,6 +32,10 @@
 #include <unordered_map>
 
 #include "open3d/visualization/gui/Events.h"
+#include "open3d/visualization/gui/MenuImgui.h"
+#ifdef __APPLE__
+#include "open3d/visualization/gui/MenuMacOS.h"
+#endif
 #include "open3d/visualization/gui/Native.h"
 #include "open3d/visualization/gui/Window.h"
 #include "open3d/visualization/rendering/filament/FilamentEngine.h"
@@ -141,11 +145,11 @@ Size GLFWWindowSystem::GetScreenSize(OSWindow w) {
     return Size(screen_width, screen_height);
 }
 
-GLFWWindowSystem::OSWindow GLFWWindowSystem::CreateWindow(Window* o3d_window,
-                                                          int width,
-                                                          int height,
-                                                          const char* title,
-                                                          int flags) {
+GLFWWindowSystem::OSWindow GLFWWindowSystem::CreateOSWindow(Window* o3d_window,
+                                                            int width,
+                                                            int height,
+                                                            const char* title,
+                                                            int flags) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -495,6 +499,14 @@ rendering::FilamentRenderer* GLFWWindowSystem::CreateRenderer(OSWindow w) {
 void GLFWWindowSystem::ResizeRenderer(OSWindow w,
                                       rendering::FilamentRenderer* renderer) {
     renderer->UpdateSwapChain();
+}
+
+MenuBase* GLFWWindowSystem::CreateOSMenu() {
+#ifdef __APPLE__
+    return new MenuMacOS();
+#else
+    return new MenuImgui();
+#endif
 }
 
 }  // namespace gui
