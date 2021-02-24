@@ -92,7 +92,8 @@ void Draw(const std::vector<DrawObject> &objects,
           int height /*= 768*/,
           const std::vector<DrawAction> &actions /*= {}*/) {
     auto &o3d_app = gui::Application::GetInstance();
-    auto bitmap_window = std::make_shared<gui::BitmapWindowSystem>();
+    auto bitmap_window = std::make_shared<gui::BitmapWindowSystem>(
+            gui::BitmapWindowSystem::Rendering::HEADLESS);
     auto draw_callback = [](gui::Window *window,
                             std::shared_ptr<geometry::Image> im) -> void {
         static int image_id = 0;
